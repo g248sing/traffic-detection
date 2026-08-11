@@ -75,12 +75,28 @@ IMG_W, IMG_H = 1280, 720
 # signs != lights) but the rest is yours.
 
 CATEGORY_MAP: dict[str, int] = {
-    # "pedestrian": 0,
-    # ... your mapping here
+    "pedestrian": 0,        # person
+    "rider": 0,             # BDD boxes the human separately from their bike/motor
+                             # -- "rider" is a person, not a vehicle
+    "car": 1,
+    "truck": 2,
+    "bus": 3,
+    "bike": 4,              # two_wheeler = the vehicle itself
+    "motor": 4,
+    "traffic light": 5,
+    "traffic sign": 6,
+    # "train" deliberately absent -- ~150 instances in 100k images, not
+    # learnable, and would silently drag down mean-over-classes mAP.
 }
 
 CLASS_NAMES: list[str] = [
-    # "person", ...  # index 0 first, must line up with the ids above
+    "person",         # 0
+    "car",            # 1
+    "truck",          # 2
+    "bus",            # 3
+    "two_wheeler",    # 4  (bike, motor, rider merged)
+    "traffic_light",  # 5
+    "traffic_sign",   # 6
 ]
 
 
@@ -102,8 +118,19 @@ def box2d_to_yolo(box: dict, img_w: int = IMG_W, img_h: int = IMG_H):
     Order matters. Think about why clipping before the reversal check would
     give you a different answer.
     """
-    # TODO
-    raise NotImplementedError
+    x1, x2 = min(box["x1"], box["x2"]), max(box["x1"], box["x2"])
+    y1, y2 = min(box["y1"], box["y2"]), max(box["y1"], box["y2"])
+
+    x1, x2 = max(0.0, min(x1, img_w)), max(0.0, min(x2, img_w))
+    y1, y2 = max(0.0, min(y1, img_h)), max(0.0, min(y2, img_h))
+
+    w, h = x2 - x1, y2 - y1
+    if w <= 0 or h <= 0:
+        return None
+
+    cx = (x1 + x2) / 2 / img_w
+    cy = (y1 + y2) / 2 / img_h
+    return (cx, cy, w / img_w, h / img_h)
 
 
 # ============================================================== TODO 3 ======
@@ -128,8 +155,28 @@ def convert_entry(entry: dict, min_box_px: float = 4.0) -> list[str]:
     signs you're throwing away at 4 vs 8 vs 16 -- that number is worth knowing
     before you wonder why sign recall is low.
     """
-    # TODO
-    raise NotImplementedError
+    lines = []
+    for label in entry.get("labels") or []:
+        category = label.get("category")
+        if category not in CATEGORY_MAP:
+            continue
+
+        box = label.get("box2d")
+        if box is None:
+            continue
+
+        yolo = box2d_to_yolo(box)
+        if yolo is None:
+            continue
+
+        cx, cy, w, h = yolo
+        if w * IMG_W < min_box_px or h * IMG_H < min_box_px:
+            continue
+
+        class_id = CATEGORY_MAP[category]
+        lines.append(f"{class_id} {cx:.6f} {cy:.6f} {w:.6f} {h:.6f}")
+
+    return lines
 
 
 # ---------------------------------------------------------------------------
