@@ -83,10 +83,18 @@ CATEGORY_MAP: dict[str, int] = {
     "bus": 3,
     "bike": 4,              # two_wheeler = the vehicle itself
     "motor": 4,
+    "bicycle": 4,           # BDD renamed bike/motor -> bicycle/motorcycle in
+    "motorcycle": 4,        # the 2020 (det_v2/det_20) label release
     "traffic light": 5,
     "traffic sign": 6,
-    # "train" deliberately absent -- ~150 instances in 100k images, not
-    # learnable, and would silently drag down mean-over-classes mAP.
+    # Deliberately excluded, same reasoning as "train" (~150 instances):
+    # too rare to learn anything from, and would drag down mean-over-classes
+    # mAP for free. "other vehicle" (804) and "other person" (210) are also
+    # catch-all buckets with no consistent visual identity -- folding them
+    # into car/person would mean labelling things that don't look like a
+    # car/person as a car/person, which is worse than dropping them.
+    #   "train": ~150, "other vehicle": 804, "other person": 210,
+    #   "trailer": 71
 }
 
 CLASS_NAMES: list[str] = [
