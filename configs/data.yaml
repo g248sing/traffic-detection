@@ -1,0 +1,12 @@
+path: /kaggle/working
+train: subset_train.txt
+val: images/100k/val
+nc: 7
+names:
+- person
+- car
+- truck
+- bus
+- two_wheeler
+- traffic_light
+- traffic_sign
