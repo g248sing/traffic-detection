@@ -1,0 +1,3 @@
+ultralytics==8.4.138
+streamlit==1.48.1
+streamlit-paste-button==0.1.2

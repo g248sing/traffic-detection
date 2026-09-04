@@ -16,8 +16,15 @@ env/
 datasets/
 data/
 *.pt
+!best.pt
 *.onnx
 *.weights
 
 .DS_Store
 Thumbs.db
+
+.gradio/
+.streamlit/
+
+*.ipynb
+!notebooks/*.ipynb
