@@ -123,6 +123,16 @@ box-shadow: 0 0 24px rgba(255,176,32,0.35) !important;
 transition: box-shadow 0.2s ease, transform 0.15s ease !important;
 }
 .stButton button:hover { box-shadow: 0 0 32px rgba(255,176,32,0.55) !important; transform: translateY(-1px) !important; }
+[data-testid="stButtonGroup"] label {
+font-family: 'JetBrains Mono', monospace !important;
+font-size: 0.78rem !important;
+letter-spacing: 0.05em !important;
+}
+[data-testid="stButtonGroup"] label[aria-checked="true"] {
+background: rgba(255,176,32,0.18) !important;
+border-color: #ffb020 !important;
+color: #ffb020 !important;
+}
 </style>
 """
 
@@ -141,35 +151,40 @@ st.html(HEADER)
 col1, col2 = st.columns(2)
 
 with col1:
-    tab_upload, tab_camera, tab_paste = st.tabs(["Upload", "Webcam", "Paste"])
-    with tab_upload:
+    # st.tabs() renders every tab's content into the DOM on every run --
+    # it's a display-only (CSS show/hide) mechanism, not conditional
+    # execution. That meant st.camera_input() ran (and requested camera
+    # permission) immediately on page load regardless of which tab was
+    # visually selected. st.segmented_control is a plain widget, not a
+    # container, so only the matching if-branch below actually runs its
+    # widget -- camera access is now requested only when "Webcam" is
+    # chosen.
+    mode = st.segmented_control("Image source", ["Upload", "Webcam", "Paste"], default="Upload")
+
+    image = None
+    # Type checkers flag paste_image_button's .image_data as the PIL.Image
+    # *module* rather than an image instance -- that's a bad annotation in
+    # streamlit-paste-button (it does `from PIL import Image` then
+    # annotates `image_data: Image`, where it meant `Image.Image`). At
+    # runtime it's a real PngImageFile; verified. Ignore the warning rather
+    # than "fixing" it.
+    if mode == "Upload":
         uploaded = st.file_uploader("Road scene image", type=["jpg", "jpeg", "png"])
-    with tab_camera:
+        if uploaded is not None:
+            image = Image.open(uploaded)
+    elif mode == "Webcam":
         captured = st.camera_input("Capture a frame")
-    with tab_paste:
+        if captured is not None:
+            image = Image.open(captured)
+    elif mode == "Paste":
         pasted = paste_image_button(
             "Paste from clipboard",
             text_color="#0b0e14",
             background_color="#ffb020",
             hover_background_color="#ffcc66",
         )
-
-    # Normalize the three sources to a single PIL Image: file_uploader and
-    # camera_input return file-like objects, but paste_image_button returns
-    # a PIL Image directly on .image_data.
-    #
-    # Type checkers flag .image_data as the PIL.Image *module* rather than an
-    # image instance -- that's a bad annotation in streamlit-paste-button
-    # (it does `from PIL import Image` then annotates `image_data: Image`,
-    # where it meant `Image.Image`). At runtime it's a real PngImageFile;
-    # verified. Ignore the warning rather than "fixing" it.
-    image = None
-    if uploaded is not None:
-        image = Image.open(uploaded)
-    elif captured is not None:
-        image = Image.open(captured)
-    elif pasted.image_data is not None:
-        image = pasted.image_data
+        if pasted.image_data is not None:
+            image = pasted.image_data
 
     confidence = st.slider("Confidence threshold", 0.05, 0.95, 0.25, 0.05)
     run_clicked = st.button("Detect")
