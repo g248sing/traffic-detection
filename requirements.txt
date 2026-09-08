@@ -1,3 +1,19 @@
+# opencv-python-headless replaces ultralytics' normal opencv-python
+# dependency. ultralytics hard-pins `opencv-python!=4.13.0.90,>=4.7.0` --
+# pip treats that as a distinct package name from opencv-python-headless,
+# so listing headless alone does NOT stop the real (libGL/X11-dependent)
+# opencv-python from also being installed (verified empirically). The
+# local wheel below is an empty stub, real code, named "opencv-python",
+# version 99.99.99 -- it satisfies ultralytics' version check with zero
+# actual content, so pip never reaches for the real one. All the real
+# cv2 functionality comes from opencv-python-headless, which doesn't
+# need libGL/X11 in the first place. This sidesteps a currently-broken
+# apt mirror in Streamlit Community Cloud's base image (stale
+# bullseye-security Release file) that blocks installing those system
+# libraries via packages.txt -- see CLAUDE.md for the full story.
+./vendor/opencv_python-99.99.99-py3-none-any.whl
+opencv-python-headless==5.0.0.93
+
 ultralytics==8.4.138
 streamlit==1.48.1
 streamlit-paste-button==0.1.2
